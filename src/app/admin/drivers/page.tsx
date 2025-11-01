@@ -197,7 +197,7 @@ function DriversContent() {
       0
     );
     const totalCommission = completedOrders.reduce(
-      (sum, order) => sum + order.commission,
+      (sum, order) => sum + (order.commission || 0),
       0
     );
     const netRevenue = totalRevenue - totalCommission;
@@ -736,7 +736,7 @@ function DriversContent() {
                                   {settings.currency}
                                 </TableCell>
                                 <TableCell>
-                                  {order.commission.toLocaleString()}{" "}
+                                  {(order.commission || 0).toLocaleString()}{" "}
                                   {settings.currency}
                                 </TableCell>
                                 <TableCell>
