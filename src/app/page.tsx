@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Box,
   Container,
@@ -8,6 +9,13 @@ import {
   Grid,
   Card,
   CardContent,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import {
   LocalTaxi,
@@ -19,10 +27,24 @@ import {
   Facebook,
   Twitter,
   Instagram,
+  Menu as MenuIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
 
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const menuItems = [
+    { text: "خدماتنا", href: "#services" },
+    { text: "المميزات", href: "#features" },
+    { text: "تواصل معنا", href: "#contact" },
+  ];
+
+  const handleMenuItemClick = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <Box>
       {/* Header */}
@@ -33,6 +55,9 @@ export default function Home() {
           color: "white",
           py: 2,
           boxShadow: 2,
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
         }}
       >
         <Container maxWidth="lg">
@@ -42,25 +67,111 @@ export default function Home() {
             alignItems="center"
           >
             <Box display="flex" alignItems="center" gap={1}>
-              <LocalTaxi sx={{ fontSize: 40, color: "primary.main" }} />
-              <Typography variant="h5" fontWeight="bold">
+              <LocalTaxi
+                sx={{
+                  fontSize: { xs: 32, sm: 40 },
+                  color: "primary.main",
+                }}
+              />
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+              >
                 تاكسي برو
               </Typography>
             </Box>
-            <Box display="flex" gap={2}>
-              <Button variant="text" sx={{ color: "white" }} href="#services">
-                خدماتنا
-              </Button>
-              <Button variant="text" sx={{ color: "white" }} href="#features">
-                المميزات
-              </Button>
-              <Button variant="text" sx={{ color: "white" }} href="#contact">
-                تواصل معنا
-              </Button>
+
+            {/* Desktop Menu */}
+            <Box display={{ xs: "none", md: "flex" }} gap={2}>
+              {menuItems.map((item) => (
+                <Button
+                  key={item.text}
+                  variant="text"
+                  sx={{ color: "white" }}
+                  href={item.href}
+                >
+                  {item.text}
+                </Button>
+              ))}
             </Box>
+
+            {/* Mobile Menu Button */}
+            <IconButton
+              sx={{
+                display: { xs: "flex", md: "none" },
+                color: "white",
+              }}
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <MenuIcon />
+            </IconButton>
           </Box>
         </Container>
       </Box>
+
+      {/* Mobile Drawer Menu */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: 280,
+            bgcolor: "secondary.main",
+            color: "white",
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              <LocalTaxi sx={{ fontSize: 32, color: "primary.main" }} />
+              <Typography variant="h6" fontWeight="bold">
+                تاكسي برو
+              </Typography>
+            </Box>
+            <IconButton
+              onClick={() => setMobileMenuOpen(false)}
+              sx={{ color: "white" }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Divider sx={{ bgcolor: "rgba(255,255,255,0.2)", mb: 2 }} />
+          <List>
+            {menuItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  component="a"
+                  href={item.href}
+                  onClick={handleMenuItemClick}
+                  sx={{
+                    borderRadius: 1,
+                    mb: 1,
+                    "&:hover": {
+                      bgcolor: "primary.main",
+                      color: "secondary.main",
+                    },
+                  }}
+                >
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
 
       {/* Hero Section */}
       <Box
@@ -72,22 +183,42 @@ export default function Home() {
         }}
       >
         <Container maxWidth="md">
-          <Typography variant="h2" fontWeight="bold" gutterBottom>
-            مرحباً بك في تاكسي برو
+          <Typography
+            variant="h2"
+            fontWeight="bold"
+            gutterBottom
+            sx={{ fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" } }}
+          >
+            مرحباً بك في تاكسي برو - طرطوس
           </Typography>
-          <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
-            أفضل خدمة نقل في المدينة - سريعة، آمنة، ومريحة
+          <Typography
+            variant="h5"
+            sx={{
+              mb: 4,
+              opacity: 0.9,
+              fontSize: { xs: "1rem", sm: "1.25rem", md: "1.5rem" },
+              px: { xs: 2, sm: 0 },
+            }}
+          >
+            خدمة النقل الأولى في طرطوس - سريعة، آمنة، ومريحة على امتداد الساحل
+            السوري
           </Typography>
-          <Box display="flex" gap={2} justifyContent="center">
+          <Box
+            display="flex"
+            gap={2}
+            justifyContent="center"
+            flexDirection={{ xs: "column", sm: "row" }}
+            px={{ xs: 2, sm: 0 }}
+          >
             <Button
               variant="contained"
               size="large"
               sx={{
                 bgcolor: "primary.main",
                 color: "secondary.main",
-                px: 4,
+                px: { xs: 3, sm: 4 },
                 py: 1.5,
-                fontSize: "1.1rem",
+                fontSize: { xs: "1rem", sm: "1.1rem" },
                 "&:hover": {
                   bgcolor: "primary.dark",
                 },
@@ -101,9 +232,9 @@ export default function Home() {
               sx={{
                 borderColor: "white",
                 color: "white",
-                px: 4,
+                px: { xs: 3, sm: 4 },
                 py: 1.5,
-                fontSize: "1.1rem",
+                fontSize: { xs: "1rem", sm: "1.1rem" },
                 "&:hover": {
                   borderColor: "primary.main",
                   bgcolor: "rgba(255, 215, 0, 0.1)",
@@ -119,8 +250,29 @@ export default function Home() {
       {/* Features Section */}
       <Box id="features" sx={{ py: 8, bgcolor: "background.default" }}>
         <Container maxWidth="lg">
-          <Typography variant="h3" textAlign="center" fontWeight="bold" mb={6}>
-            لماذا تاكسي برو؟
+          <Typography
+            variant="h3"
+            textAlign="center"
+            fontWeight="bold"
+            mb={2}
+            sx={{ fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" } }}
+          >
+            لماذا تاكسي برو طرطوس؟
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            textAlign="center"
+            color="text.secondary"
+            mb={6}
+            sx={{
+              maxWidth: 800,
+              mx: "auto",
+              fontSize: { xs: "0.875rem", sm: "1rem" },
+              px: { xs: 2, sm: 0 },
+            }}
+          >
+            نخدم جميع مناطق طرطوس: الكورنيش، ساحة الشهداء، المدينة القديمة،
+            الميناء، مشتى الحلو، والأحياء المحيطة
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} md={3}>
@@ -131,7 +283,7 @@ export default function Home() {
                     خدمة سريعة
                   </Typography>
                   <Typography color="text.secondary">
-                    وصول سريع في أقل من 5 دقائق
+                    وصول سريع لجميع أحياء طرطوس في دقائق معدودة
                   </Typography>
                 </CardContent>
               </Card>
@@ -188,7 +340,13 @@ export default function Home() {
       {/* Services Section */}
       <Box id="services" sx={{ py: 8, bgcolor: "white" }}>
         <Container maxWidth="lg">
-          <Typography variant="h3" textAlign="center" fontWeight="bold" mb={6}>
+          <Typography
+            variant="h3"
+            textAlign="center"
+            fontWeight="bold"
+            mb={6}
+            sx={{ fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" } }}
+          >
             خدماتنا
           </Typography>
           <Grid container spacing={4}>
@@ -199,7 +357,7 @@ export default function Home() {
                 </Typography>
                 <Typography color="text.secondary" paragraph>
                   سيارات فاخرة ومريحة لرحلة خاصة وهادئة. مثالية للعائلات ورحلات
-                  العمل.
+                  العمل في طرطوس والمناطق المحيطة.
                 </Typography>
                 <Button variant="contained" color="primary">
                   اطلب الآن
@@ -212,7 +370,8 @@ export default function Home() {
                   تاكسي عام
                 </Typography>
                 <Typography color="text.secondary" paragraph>
-                  خدمة نقل اقتصادية وسريعة تناسب جميع الاحتياجات اليومية.
+                  خدمة نقل اقتصادية وسريعة تغطي جميع أحياء طرطوس من الكورنيش إلى
+                  مشتى الحلو.
                 </Typography>
                 <Button variant="contained" color="primary">
                   اطلب الآن
@@ -226,7 +385,13 @@ export default function Home() {
       {/* Contact Section */}
       <Box id="contact" sx={{ py: 8, bgcolor: "background.default" }}>
         <Container maxWidth="md">
-          <Typography variant="h3" textAlign="center" fontWeight="bold" mb={6}>
+          <Typography
+            variant="h3"
+            textAlign="center"
+            fontWeight="bold"
+            mb={6}
+            sx={{ fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" } }}
+          >
             تواصل معنا
           </Typography>
           <Grid container spacing={3}>
@@ -236,7 +401,10 @@ export default function Home() {
                 <Typography variant="h6" fontWeight="bold">
                   الهاتف
                 </Typography>
-                <Typography color="text.secondary">+966 50 123 4567</Typography>
+                <Typography color="text.secondary">+963 43 123 456</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  0932 000 000
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -245,7 +413,7 @@ export default function Home() {
                 <Typography variant="h6" fontWeight="bold">
                   البريد الإلكتروني
                 </Typography>
-                <Typography color="text.secondary">info@taxipro.sa</Typography>
+                <Typography color="text.secondary">info@taxipro.sy</Typography>
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -257,7 +425,7 @@ export default function Home() {
                   العنوان
                 </Typography>
                 <Typography color="text.secondary">
-                  الرياض، المملكة العربية السعودية
+                  ساحة الشهداء - طرطوس، سوريا
                 </Typography>
               </Box>
             </Grid>
@@ -284,7 +452,8 @@ export default function Home() {
                 </Typography>
               </Box>
               <Typography color="rgba(255,255,255,0.7)">
-                أفضل خدمة نقل في المدينة - سريعة، آمنة، ومريحة
+                خدمة النقل الأولى في طرطوس - نخدم جميع أحياء المدينة على مدار
+                الساعة
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
