@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import {
   Box,
   Typography,
@@ -18,13 +17,26 @@ import {
   Paper,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Alert,
 } from "@mui/material";
 import { LocationOn, DriveEta } from "@mui/icons-material";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateDriverLocation } from "@/store/slices/driversSlice";
-import { getActiveDrivers } from "@/utils/helpers";
+import { addOrder } from "@/store/slices/ordersSlice";
+import {
+  getActiveDrivers,
+  generateId,
+  calculateCommission,
+} from "@/utils/helpers";
 import ProtectedRoute from "@/components/admin/ProtectedRoute";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { Order } from "@/types";
 
 // تحميل الخريطة ديناميكياً لتجنب مشاكل SSR
 const DriversMap = dynamic(() => import("@/components/admin/DriversMap"), {
@@ -47,21 +59,92 @@ const DriversMap = dynamic(() => import("@/components/admin/DriversMap"), {
 
 function MapContent() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const { drivers } = useAppSelector((state) => state.drivers);
+  const { settings } = useAppSelector((state) => state.settings);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [liveTracking, setLiveTracking] = useState(true);
   const [showInactiveDrivers, setShowInactiveDrivers] = useState(false);
+
+  // حالة Dialog إضافة الطلب
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [selectedDriverForOrder, setSelectedDriverForOrder] = useState<
+    string | null
+  >(null);
+  const [orderFormData, setOrderFormData] = useState({
+    startLocation: "",
+    destination: "",
+    cost: "",
+  });
+  const [orderErrors, setOrderErrors] = useState<any>({});
+  const [orderSuccess, setOrderSuccess] = useState(false);
 
   const activeDrivers = getActiveDrivers(drivers);
   const displayDrivers = showInactiveDrivers ? drivers : activeDrivers;
   const driversWithLocation = displayDrivers.filter((d) => d.location);
 
-  // دالة للانتقال إلى صفحة الطلبات مع اختيار السائق
+  // دالة لفتح Dialog إضافة الطلب
   const handleAddOrder = (driverId: string) => {
-    // تخزين السائق المختار في localStorage للاستخدام في صفحة الطلبات
-    localStorage.setItem("selectedDriverForOrder", driverId);
-    router.push("/admin/orders");
+    setSelectedDriverForOrder(driverId);
+    setOrderFormData({
+      startLocation: "",
+      destination: "",
+      cost: "",
+    });
+    setOrderErrors({});
+    setOrderSuccess(false);
+    setOrderDialogOpen(true);
+  };
+
+  // التحقق من بيانات الطلب
+  const validateOrderForm = () => {
+    const newErrors: any = {};
+
+    if (!orderFormData.startLocation.trim()) {
+      newErrors.startLocation = "نقطة الانطلاق مطلوبة";
+    }
+
+    if (!orderFormData.destination.trim()) {
+      newErrors.destination = "الوجهة مطلوبة";
+    }
+
+    if (!orderFormData.cost || parseFloat(orderFormData.cost) <= 0) {
+      newErrors.cost = "التكلفة يجب أن تكون أكبر من صفر";
+    }
+
+    setOrderErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // حفظ الطلب
+  const handleSaveOrder = () => {
+    if (!validateOrderForm() || !selectedDriverForOrder) return;
+
+    const driver = drivers.find((d) => d.id === selectedDriverForOrder);
+    if (!driver) return;
+
+    const cost = parseFloat(orderFormData.cost);
+    const commission = calculateCommission(cost, settings.commissionRate);
+
+    const newOrder: Order = {
+      id: generateId(),
+      driverId: driver.id,
+      driverName: driver.name,
+      startLocation: orderFormData.startLocation,
+      destination: orderFormData.destination,
+      cost,
+      commission,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    dispatch(addOrder(newOrder));
+    setOrderSuccess(true);
+
+    // إغلاق Dialog بعد ثانيتين
+    setTimeout(() => {
+      setOrderDialogOpen(false);
+      setOrderSuccess(false);
+    }, 2000);
   };
 
   // محاكاة تحديث مواقع السائقين كل 5 ثواني
@@ -320,6 +403,94 @@ function MapContent() {
             </Card>
           </Grid>
         </Grid>
+
+        {/* Dialog إضافة طلب */}
+        <Dialog
+          open={orderDialogOpen}
+          onClose={() => setOrderDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Typography variant="h6" fontWeight="bold">
+              إضافة طلب جديد
+            </Typography>
+            {selectedDriverForOrder && (
+              <Typography variant="body2" color="text.secondary">
+                السائق:{" "}
+                {drivers.find((d) => d.id === selectedDriverForOrder)?.name}
+              </Typography>
+            )}
+          </DialogTitle>
+          <DialogContent dividers>
+            {orderSuccess && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                تم إضافة الطلب بنجاح!
+              </Alert>
+            )}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                label="نقطة الانطلاق"
+                value={orderFormData.startLocation}
+                onChange={(e) =>
+                  setOrderFormData({
+                    ...orderFormData,
+                    startLocation: e.target.value,
+                  })
+                }
+                error={!!orderErrors.startLocation}
+                helperText={orderErrors.startLocation}
+                fullWidth
+                placeholder="طرطوس - الكورنيش الجنوبي"
+              />
+              <TextField
+                label="الوجهة"
+                value={orderFormData.destination}
+                onChange={(e) =>
+                  setOrderFormData({
+                    ...orderFormData,
+                    destination: e.target.value,
+                  })
+                }
+                error={!!orderErrors.destination}
+                helperText={orderErrors.destination}
+                fullWidth
+                placeholder="طرطوس - ساحة الشهداء"
+              />
+              <TextField
+                label={`التكلفة (${settings.currency})`}
+                type="number"
+                value={orderFormData.cost}
+                onChange={(e) =>
+                  setOrderFormData({ ...orderFormData, cost: e.target.value })
+                }
+                error={!!orderErrors.cost}
+                helperText={
+                  orderErrors.cost ||
+                  (orderFormData.cost &&
+                    `العمولة (${
+                      settings.commissionRate
+                    }%): ${calculateCommission(
+                      parseFloat(orderFormData.cost),
+                      settings.commissionRate
+                    ).toLocaleString()} ${settings.currency}`)
+                }
+                fullWidth
+                placeholder="15000"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOrderDialogOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={handleSaveOrder}
+              variant="contained"
+              disabled={orderSuccess}
+            >
+              حفظ الطلب
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </AdminLayout>
   );

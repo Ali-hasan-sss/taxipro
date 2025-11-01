@@ -20,8 +20,6 @@ import {
   BottomNavigation,
   BottomNavigationAction,
   Paper,
-  useTheme,
-  useMediaQuery,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -48,8 +46,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -143,7 +139,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </Box>
   );
 
-  // عرض loading بسيط حتى يتم mount
+  // عرض loading حتى يتم mount على client
   if (!mounted) {
     return (
       <Box
@@ -152,9 +148,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           minHeight: "100vh",
           bgcolor: "background.default",
         }}
-      >
-        <Box sx={{ flexGrow: 1 }} />
-      </Box>
+      />
     );
   }
 
@@ -211,22 +205,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </AppBar>
 
       {/* Sidebar for Desktop */}
-      {mounted && !isMobile && (
-        <Drawer
-          anchor="right"
-          variant="permanent"
-          sx={{
+      <Drawer
+        anchor="right"
+        variant="permanent"
+        sx={{
+          display: { xs: "none", md: "block" },
+          width: drawerWidth,
+          flexShrink: 0,
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
-            flexShrink: 0,
-            "& .MuiDrawer-paper": {
-              width: drawerWidth,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      )}
+            boxSizing: "border-box",
+            marginTop: "64px", // ارتفاع الـ AppBar
+            height: "calc(100vh - 64px)",
+          },
+        }}
+      >
+        {drawer}
+      </Drawer>
 
       {/* Main Content */}
       <Box
@@ -234,12 +229,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width:
-            mounted && !isMobile ? `calc(100% - ${drawerWidth}px)` : "100%",
+          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
           minHeight: "100vh",
           bgcolor: "background.default",
           direction: "rtl",
-          pb: mounted && isMobile ? 9 : 3,
+          pb: { xs: 12, md: 3 },
         }}
       >
         <Toolbar />
@@ -247,48 +241,47 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </Box>
 
       {/* Bottom Navigation for Mobile */}
-      {mounted && isMobile && (
-        <Paper
+      <Paper
+        sx={{
+          display: { xs: "block", md: "none" },
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
+        elevation={3}
+      >
+        <BottomNavigation
+          value={pathname}
+          onChange={handleBottomNavChange}
+          showLabels
           sx={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            direction: "rtl",
+            "& .MuiBottomNavigationAction-root": {
+              minWidth: "auto",
+            },
+            "& .Mui-selected": {
+              color: "primary.main",
+            },
           }}
-          elevation={3}
         >
-          <BottomNavigation
-            value={pathname}
-            onChange={handleBottomNavChange}
-            showLabels
-            sx={{
-              direction: "rtl",
-              "& .MuiBottomNavigationAction-root": {
-                minWidth: "auto",
-              },
-              "& .Mui-selected": {
-                color: "primary.main",
-              },
-            }}
-          >
-            {menuItems.map((item) => (
-              <BottomNavigationAction
-                key={item.path}
-                label={item.text}
-                value={item.path}
-                icon={item.icon}
-                sx={{
+          {menuItems.map((item) => (
+            <BottomNavigationAction
+              key={item.path}
+              label={item.text}
+              value={item.path}
+              icon={item.icon}
+              sx={{
+                fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                "& .MuiBottomNavigationAction-label": {
                   fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                  "& .MuiBottomNavigationAction-label": {
-                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                  },
-                }}
-              />
-            ))}
-          </BottomNavigation>
-        </Paper>
-      )}
+                },
+              }}
+            />
+          ))}
+        </BottomNavigation>
+      </Paper>
     </Box>
   );
 }

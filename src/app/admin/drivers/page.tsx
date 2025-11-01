@@ -24,6 +24,8 @@ import {
   Select,
   MenuItem,
   Alert,
+  Grid,
+  CardContent,
 } from "@mui/material";
 import {
   Add,
@@ -31,6 +33,7 @@ import {
   Delete,
   PersonOff,
   PersonOutline,
+  Visibility,
 } from "@mui/icons-material";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -47,12 +50,16 @@ import ProtectedRoute from "@/components/admin/ProtectedRoute";
 function DriversContent() {
   const dispatch = useAppDispatch();
   const { drivers } = useAppSelector((state) => state.drivers);
+  const { orders } = useAppSelector((state) => state.orders);
+  const { settings } = useAppSelector((state) => state.settings);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentDriver, setCurrentDriver] = useState<Driver | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [driverToDelete, setDriverToDelete] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [viewingDriver, setViewingDriver] = useState<Driver | null>(null);
 
   // نموذج السائق
   const [formData, setFormData] = useState({
@@ -168,6 +175,45 @@ function DriversContent() {
     dispatch(toggleDriverStatus(driverId));
   };
 
+  // عرض تفاصيل السائق
+  const handleViewDetails = (driver: Driver) => {
+    setViewingDriver(driver);
+    setDetailsDialogOpen(true);
+  };
+
+  // الحصول على طلبات السائق
+  const getDriverOrders = (driverId: string) => {
+    return orders.filter((order) => order.driverId === driverId);
+  };
+
+  // حساب إحصائيات السائق
+  const getDriverStats = (driverId: string) => {
+    const driverOrders = getDriverOrders(driverId);
+    const completedOrders = driverOrders.filter(
+      (o) => o.status === "completed"
+    );
+    const totalRevenue = completedOrders.reduce(
+      (sum, order) => sum + order.cost,
+      0
+    );
+    const totalCommission = completedOrders.reduce(
+      (sum, order) => sum + order.commission,
+      0
+    );
+    const netRevenue = totalRevenue - totalCommission;
+
+    return {
+      totalOrders: driverOrders.length,
+      completedOrders: completedOrders.length,
+      pendingOrders: driverOrders.filter((o) => o.status === "pending").length,
+      inProgressOrders: driverOrders.filter((o) => o.status === "in-progress")
+        .length,
+      totalRevenue,
+      totalCommission,
+      netRevenue,
+    };
+  };
+
   return (
     <AdminLayout>
       <Box>
@@ -260,6 +306,13 @@ function DriversContent() {
                         />
                       </TableCell>
                       <TableCell align="center">
+                        <IconButton
+                          color="info"
+                          onClick={() => handleViewDetails(driver)}
+                          title="عرض التفاصيل"
+                        >
+                          <Visibility />
+                        </IconButton>
                         <IconButton
                           color={driver.isActive ? "error" : "success"}
                           onClick={() => handleToggleStatus(driver.id)}
@@ -396,6 +449,332 @@ function DriversContent() {
               variant="contained"
             >
               حذف
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* نافذة تفاصيل السائق */}
+        <Dialog
+          open={detailsDialogOpen}
+          onClose={() => setDetailsDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="h6" fontWeight="bold">
+                تفاصيل السائق
+              </Typography>
+              <Chip
+                label={viewingDriver?.isActive ? "نشط" : "غير نشط"}
+                color={viewingDriver?.isActive ? "success" : "default"}
+                size="small"
+              />
+            </Box>
+          </DialogTitle>
+          <DialogContent dividers>
+            {viewingDriver && (
+              <Box>
+                {/* معلومات السائق */}
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      المعلومات الشخصية
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          الاسم
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {viewingDriver.name}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          رقم الموبايل
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {viewingDriver.mobile}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          نوع السيارة
+                        </Typography>
+                        <Chip
+                          label={
+                            viewingDriver.carType === "private"
+                              ? "خاصة"
+                              : "عامة"
+                          }
+                          color={
+                            viewingDriver.carType === "private"
+                              ? "primary"
+                              : "secondary"
+                          }
+                          size="small"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          موديل السيارة
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {viewingDriver.carModel}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Typography variant="body2" color="text.secondary">
+                          رقم اللوحة
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {viewingDriver.carPlateNumber}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* إحصائيات السائق */}
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      الإحصائيات
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {(() => {
+                        const stats = getDriverStats(viewingDriver.id);
+                        return (
+                          <>
+                            <Grid item xs={6} sm={3}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="background.default"
+                                borderRadius={2}
+                              >
+                                <Typography
+                                  variant="h4"
+                                  color="primary"
+                                  fontWeight="bold"
+                                >
+                                  {stats.totalOrders}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  إجمالي الطلبات
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="background.default"
+                                borderRadius={2}
+                              >
+                                <Typography
+                                  variant="h4"
+                                  color="success.main"
+                                  fontWeight="bold"
+                                >
+                                  {stats.completedOrders}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  مكتملة
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="background.default"
+                                borderRadius={2}
+                              >
+                                <Typography
+                                  variant="h4"
+                                  color="warning.main"
+                                  fontWeight="bold"
+                                >
+                                  {stats.pendingOrders}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  قيد الانتظار
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="background.default"
+                                borderRadius={2}
+                              >
+                                <Typography
+                                  variant="h4"
+                                  color="info.main"
+                                  fontWeight="bold"
+                                >
+                                  {stats.inProgressOrders}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  جارية
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={4}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="primary.light"
+                                borderRadius={2}
+                              >
+                                <Typography variant="h5" fontWeight="bold">
+                                  {stats.totalRevenue.toLocaleString()}{" "}
+                                  {settings.currency}
+                                </Typography>
+                                <Typography variant="body2">
+                                  إجمالي الإيرادات
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={4}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="error.light"
+                                borderRadius={2}
+                              >
+                                <Typography variant="h5" fontWeight="bold">
+                                  {stats.totalCommission.toLocaleString()}{" "}
+                                  {settings.currency}
+                                </Typography>
+                                <Typography variant="body2">العمولة</Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={4}>
+                              <Box
+                                textAlign="center"
+                                p={2}
+                                bgcolor="success.light"
+                                borderRadius={2}
+                              >
+                                <Typography variant="h5" fontWeight="bold">
+                                  {stats.netRevenue.toLocaleString()}{" "}
+                                  {settings.currency}
+                                </Typography>
+                                <Typography variant="body2">
+                                  صافي الربح
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </>
+                        );
+                      })()}
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* طلبات السائق */}
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      الطلبات ({getDriverOrders(viewingDriver.id).length})
+                    </Typography>
+                    {getDriverOrders(viewingDriver.id).length === 0 ? (
+                      <Box textAlign="center" py={4}>
+                        <Typography color="text.secondary">
+                          لا توجد طلبات لهذا السائق
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>
+                                <strong>من</strong>
+                              </TableCell>
+                              <TableCell>
+                                <strong>إلى</strong>
+                              </TableCell>
+                              <TableCell>
+                                <strong>التكلفة</strong>
+                              </TableCell>
+                              <TableCell>
+                                <strong>العمولة</strong>
+                              </TableCell>
+                              <TableCell>
+                                <strong>الحالة</strong>
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {getDriverOrders(viewingDriver.id).map((order) => (
+                              <TableRow key={order.id}>
+                                <TableCell>{order.startLocation}</TableCell>
+                                <TableCell>{order.destination}</TableCell>
+                                <TableCell>
+                                  {order.cost.toLocaleString()}{" "}
+                                  {settings.currency}
+                                </TableCell>
+                                <TableCell>
+                                  {order.commission.toLocaleString()}{" "}
+                                  {settings.currency}
+                                </TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={
+                                      order.status === "completed"
+                                        ? "مكتمل"
+                                        : order.status === "in-progress"
+                                        ? "جاري"
+                                        : "قيد الانتظار"
+                                    }
+                                    color={
+                                      order.status === "completed"
+                                        ? "success"
+                                        : order.status === "in-progress"
+                                        ? "info"
+                                        : "warning"
+                                    }
+                                    size="small"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setDetailsDialogOpen(false)}
+              variant="contained"
+            >
+              إغلاق
             </Button>
           </DialogActions>
         </Dialog>
